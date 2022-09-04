@@ -15,6 +15,8 @@ import (
 type img struct {
 	data      [][]int
 	imageType ImageType
+	height    int
+	width     int
 }
 
 type ImageType uint8
@@ -219,5 +221,5 @@ func (d *drawingBoard) convertToImg(i image.Image, it ImageType) img {
 		}
 	}
 
-	return img{imgData, it}
+	return img{imgData, it, height, width}
 }

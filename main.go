@@ -44,7 +44,7 @@ func main() {
 	m := marioMaker{}
 	m.init()
 	im := m.convertToImg(i, Colored)
-	println(m.width, m.height)
+	println(im.width, im.height)
 
 	// Set tty break for read keyboard input directly
 	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
@@ -76,19 +76,19 @@ func main() {
 				setInput(&con.Input.Button.Home)
 			case '`':
 				setInput(&con.Input.Button.Capture)
-			case '	':
+			case '-':
 				setInput(&con.Input.Button.ZL)
 			case 'q':
 				setInput(&con.Input.Button.L)
 			case ']':
 				setInput(&con.Input.Button.R)
-			case '\\':
-				setInput(&con.Input.Button.ZL)
+			case '=':
+				setInput(&con.Input.Button.ZR)
 			case 'g':
 				setInput(&con.Input.Button.Plus)
 			case 'f':
 				setInput(&con.Input.Button.Minus)
-			case 'n':
+			case 'n': // Golden finger
 				m.ink(im, con)
 
 			default:
