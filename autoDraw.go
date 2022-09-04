@@ -27,18 +27,8 @@ const (
 )
 
 type drawing interface {
-	ink(i img)
+	ink(im img, con *nscon.Controller)
 }
-
-type MoveState uint8
-
-const (
-	MoveStateStart MoveState = iota
-	MoveStateMoveToRight
-	MoveStateMoveToLeft
-	MoveStateMoveToDown
-	MoveStateEnd
-)
 
 type drawingBoard struct {
 	width     int
@@ -46,13 +36,11 @@ type drawingBoard struct {
 	colorList [][3]uint8
 
 	clickPerMove    int
-	moveState       MoveState
 	currentPosition [2]int
 	colorState      int
 }
 
 func (d *drawingBoard) defaultInit() {
-	d.moveState = MoveStateStart
 	d.currentPosition = [2]int{0, 0}
 	d.colorState = 0
 	d.clickPerMove = 1
@@ -82,79 +70,55 @@ func (d *drawingBoard) cursorInit(con *nscon.Controller) {
 	})
 }
 
-func (d *drawingBoard) ink(i img, con *nscon.Controller) {
-	if !d.checkImgSize(i) {
+func (d *drawingBoard) ink(im img, con *nscon.Controller) {
+	if !d.checkImgSize(im) {
 		log.Println("Image size is not correct")
 	}
+
+	x, y := &d.currentPosition[0], &d.currentPosition[1]
+	height, width := d.height, d.width
+
 	log.Println("Init cursor")
 	d.cursorInit(con)
-	for {
-		x, y := &d.currentPosition[0], &d.currentPosition[1]
-		height, width := d.height, d.width
+	d.cursorInit(con)
 
-		// position move
-		switch d.moveState {
-		case MoveStateEnd:
-			log.Println("Drawing finished")
-			break
-		case MoveStateStart:
-			log.Println("Drawing start")
-			d.currentPosition = [2]int{0, 0}
-			d.moveState = MoveStateMoveToRight
-		case MoveStateMoveToRight:
-			*x += d.clickPerMove
-
-			setInputWithTimes(&con.Input.Dpad.Right, d.clickPerMove)
-
-			if *x >= width-1 {
-				d.moveState = MoveStateMoveToDown
+	for i := 0; i < height; i += d.clickPerMove {
+		for j := 0; j < width; j += d.clickPerMove {
+			if i%2 == 0 {
+				*x, *y = j, i
+			} else {
+				*x, *y = width-j-1, i
 			}
-		case MoveStateMoveToLeft:
-			*x -= d.clickPerMove
 
-			setInputWithTimes(&con.Input.Dpad.Left, d.clickPerMove)
-
-			if *x == 0 {
-				d.moveState = MoveStateMoveToDown
-			}
-		case MoveStateMoveToDown:
-			*y += d.clickPerMove
-
-			setInputWithTimes(&con.Input.Dpad.Down, d.clickPerMove)
-
-			if *y >= height-1 {
-				d.moveState = MoveStateEnd
-			} else if *x <= 0 {
-				d.moveState = MoveStateMoveToRight
-			} else if *x >= width-1 {
-				d.moveState = MoveStateMoveToLeft
-			}
-		}
-
-		// Choose color
-		if i.imageType == Colored {
-			colorIndex := i.data[*x][*y]
-			if colorIndex != d.colorState {
-				colorChooseMoveTimes := colorIndex - d.colorState
-				if colorChooseMoveTimes < 0 {
-					setInputWithTimes(&con.Input.Button.ZL, -colorChooseMoveTimes)
-				} else {
-					setInputWithTimes(&con.Input.Button.ZR, colorChooseMoveTimes)
+			// Choose color
+			colorIndexValue := im.data[*x][*y]
+			if im.imageType == Colored {
+				if colorIndexValue != d.colorState {
+					colorChooseMoveTimes := colorIndexValue - d.colorState
+					if colorChooseMoveTimes < 0 {
+						setInputWithTimes(&con.Input.Button.ZL, -colorChooseMoveTimes)
+					} else {
+						setInputWithTimes(&con.Input.Button.ZR, colorChooseMoveTimes)
+					}
+					d.colorState = colorIndexValue
 				}
 			}
+
+			// ignore white color
+			if im.imageType == Colored || (im.imageType == BlackAndWhite && colorIndexValue != 0) {
+				setInput(&con.Input.Button.A)
+				log.Println("Drawing", *x, *y, colorIndexValue)
+			}
+
+			// move cursor
+			// will click one more time when move to the edge, but it's ok
+			if i%2 == 0 {
+				setInputWithTimes(&con.Input.Dpad.Right, d.clickPerMove)
+			} else {
+				setInputWithTimes(&con.Input.Dpad.Left, d.clickPerMove)
+			}
 		}
-
-		// Click
-
-		// ignore white color
-		//if (i.imageType == BlackAndWhite && i.data[x][y] == 0) ||
-		//	(i.imageType == Colored && d.colorList[i.data[x][y]] == [3]uint8{255, 255, 255}) {
-		//	continue
-		//}
-
-		setInput(&con.Input.Button.A)
-
-		log.Println("Drawing", *x, *y, d.colorState)
+		setInputWithTimes(&con.Input.Dpad.Down, d.clickPerMove)
 	}
 }
 
