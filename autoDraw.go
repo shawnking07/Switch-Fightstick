@@ -33,7 +33,7 @@ type drawing interface {
 type drawingBoard struct {
 	width     int
 	height    int
-	colorList [][3]uint8
+	colorList []color.Color
 
 	clickPerMove    int
 	currentPosition [2]int
@@ -56,18 +56,19 @@ func (d *drawingBoard) checkImgSize(i img) bool {
 
 func setInputWithTimes(input *uint8, times int) {
 	for i := 0; i < times; i++ {
-		setInput(input)
+		*input++
+		time.Sleep(50 * time.Millisecond)
+		*input--
 		time.Sleep(50 * time.Millisecond)
 	}
 }
 
 func (d *drawingBoard) cursorInit(con *nscon.Controller) {
 	con.Input.Stick.Left.X = -1
-	con.Input.Stick.Left.Y = -1
-	time.AfterFunc(2*time.Second, func() {
-		con.Input.Stick.Left.X = 0
-		con.Input.Stick.Left.Y = 0
-	})
+	con.Input.Stick.Left.Y = 1
+	time.Sleep(2 * time.Second)
+	con.Input.Stick.Left.X = 0
+	con.Input.Stick.Left.Y = 0
 }
 
 func (d *drawingBoard) ink(im img, con *nscon.Controller) {
@@ -91,7 +92,7 @@ func (d *drawingBoard) ink(im img, con *nscon.Controller) {
 			}
 
 			// Choose color
-			colorIndexValue := im.data[*x][*y]
+			colorIndexValue := im.data[*y][*x]
 			if im.imageType == Colored {
 				if colorIndexValue != d.colorState {
 					colorChooseMoveTimes := colorIndexValue - d.colorState
@@ -122,29 +123,27 @@ func (d *drawingBoard) ink(im img, con *nscon.Controller) {
 	}
 }
 
-// Euclidean distance
-func distance(a, b [3]uint8) float64 {
-	var sum float64
-	for i := 0; i < 3; i++ {
-		sum += math.Pow(float64(a[i]-b[i]), 2)
-	}
-	return math.Sqrt(sum)
+// Color distance
+func distance(a, b color.Color) float64 {
+	r1, g1, b1, _ := a.RGBA()
+	r2, g2, b2, _ := b.RGBA()
+	return math.Sqrt(float64((r1-r2)*(r1-r2) + (g1-g2)*(g1-g2) + (b1-b2)*(b1-b2)))
 }
 
-func (d *drawingBoard) getNearestColorIndex(c [3]uint8) int {
-	var minDistance float64
-	var minIndex int
+func (d *drawingBoard) getNearestColorIndex(c color.Color) int {
+	min := math.MaxFloat64
+	minIndex := -1
 	for i, color1 := range d.colorList {
-		d := distance(c, color1)
-		if i == 0 || d < minDistance {
-			minDistance = d
+		dist := distance(c, color1)
+		if dist < min {
+			min = dist
 			minIndex = i
 		}
 	}
 	return minIndex
 }
 
-func (d *drawingBoard) getColorIndex(c [3]uint8) int {
+func (d *drawingBoard) getColorIndex(c color.Color) int {
 	for i, color1 := range d.colorList {
 		if c == color1 {
 			return i
@@ -163,11 +162,7 @@ func (d *drawingBoard) convertToImg(i image.Image, it ImageType) img {
 	case BlackAndWhite:
 		colors = append(colors, color.White, color.Black)
 	case Colored:
-		for colorIndex := range d.colorList {
-			r, g, b := d.colorList[colorIndex][0], d.colorList[colorIndex][1], d.colorList[colorIndex][2]
-			rgba := color.RGBA{R: r, G: g, B: b, A: 255}
-			colors = append(colors, rgba)
-		}
+		colors = append(colors, d.colorList...)
 	}
 
 	di := dither.NewDitherer(colors)
@@ -178,9 +173,7 @@ func (d *drawingBoard) convertToImg(i image.Image, it ImageType) img {
 	for y := 0; y < height; y++ {
 		imgData[y] = make([]int, width)
 		for x := 0; x < width; x++ {
-			r, g, b, _ := i.At(x, y).RGBA()
-			r, g, b = r>>8, g>>8, b>>8
-			index := d.getNearestColorIndex([3]uint8{uint8(r), uint8(g), uint8(b)})
+			index := d.getColorIndex(i.At(x, y))
 			imgData[y][x] = index
 		}
 	}

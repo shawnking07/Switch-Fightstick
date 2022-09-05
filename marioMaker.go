@@ -1,5 +1,7 @@
 package main
 
+import "image/color"
+
 type marioMaker struct {
 	drawingBoard
 }
@@ -10,7 +12,7 @@ func (m *marioMaker) init() marioMaker {
 	m.width = 320
 	m.height = 180
 
-	m.colorList = [][3]uint8{
+	colorList := [][3]uint8{
 		{0, 0, 0},
 		{255, 255, 255},
 		{255, 0, 0},
@@ -28,6 +30,11 @@ func (m *marioMaker) init() marioMaker {
 		{255, 185, 254},
 		{180, 0, 127},
 		{180, 180, 180},
+	}
+
+	// convert uint8 color to Color
+	for _, c := range colorList {
+		m.colorList = append(m.colorList, color.RGBA{c[0], c[1], c[2], 255})
 	}
 
 	return *m
