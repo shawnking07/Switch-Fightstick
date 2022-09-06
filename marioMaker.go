@@ -34,7 +34,7 @@ func (m *marioMaker) init() marioMaker {
 
 	// convert uint8 color to Color
 	for _, c := range colorList {
-		m.colorList = append(m.colorList, color.RGBA{c[0], c[1], c[2], 255})
+		m.colorList = append(m.colorList, color.RGBA{R: c[0], G: c[1], B: c[2], A: 255})
 	}
 
 	return *m

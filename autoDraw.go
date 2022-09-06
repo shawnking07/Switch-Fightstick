@@ -27,7 +27,7 @@ const (
 )
 
 type drawing interface {
-	ink(im img, con *nscon.Controller)
+	ink(im img, con *nscon.Controller) error
 }
 
 type drawingBoard struct {
