@@ -69,11 +69,13 @@ func (d *drawingBoard) cursorInit(con *nscon.Controller) {
 	time.Sleep(2 * time.Second)
 	con.Input.Stick.Left.X = 0
 	con.Input.Stick.Left.Y = 0
+	time.Sleep(50 * time.Millisecond)
 }
 
-func (d *drawingBoard) ink(im img, con *nscon.Controller) {
+func (d *drawingBoard) ink(im img, con *nscon.Controller) error {
 	if !d.checkImgSize(im) {
 		log.Println("Image size is not correct")
+		//return errors.New("image size is not correct")
 	}
 
 	x, y := &d.currentPosition[0], &d.currentPosition[1]
@@ -107,7 +109,7 @@ func (d *drawingBoard) ink(im img, con *nscon.Controller) {
 
 			// ignore white color
 			if im.imageType == Colored || (im.imageType == BlackAndWhite && colorIndexValue != 0) {
-				setInput(&con.Input.Button.A)
+				setInputWithTimes(&con.Input.Button.A, 1)
 				log.Println("Drawing", *x, *y, colorIndexValue)
 			}
 
@@ -121,6 +123,8 @@ func (d *drawingBoard) ink(im img, con *nscon.Controller) {
 		}
 		setInputWithTimes(&con.Input.Dpad.Down, d.clickPerMove)
 	}
+
+	return nil
 }
 
 // Color distance
