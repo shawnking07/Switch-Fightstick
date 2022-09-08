@@ -19,10 +19,10 @@ func setInput(input *uint8) {
 }
 
 func main() {
-	target := "/dev/hidg0"
-	if flag.NArg() > 0 {
-		target = flag.Args()[1]
-	}
+	target := *flag.String("target", "/dev/hidg0", "hid device")
+	imgPath := *flag.String("img", "print.png", "image path")
+	flag.Parse()
+
 	con := nscon.NewController(target)
 	con.LogLevel = 0
 	defer con.Close()
@@ -33,18 +33,21 @@ func main() {
 	}
 	buf := make([]byte, 1)
 
-	f, err := os.Open("doge.png")
-	if err != nil {
-		panic(err)
-	}
-
-	// load png
-	i, err := png.Decode(f)
-
 	m := marioMaker{}
 	m.init()
-	im := m.convertToImg(i, Colored)
-	println(im.width, im.height)
+
+	sp := splatoon3{}
+	sp.init()
+
+	f, err := os.Open(imgPath)
+	if err != nil {
+		log.Println(err)
+	}
+	// load png
+	i, err := png.Decode(f)
+	if err != nil {
+		log.Println(err)
+	}
 
 	// Set tty break for read keyboard input directly
 	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
@@ -89,7 +92,20 @@ func main() {
 			case 'f':
 				setInput(&con.Input.Button.Minus)
 			case 'n': // Golden finger
-				m.ink(im, con)
+				log.Printf("Golden finger: Print Super Mario Maker")
+				im := m.convertToImg(i, Colored)
+				err = m.ink(im, con)
+				if err != nil {
+					log.Println(err)
+				}
+
+			case 'm':
+				log.Printf("Golden finger: Print Splatoon 3")
+				im := sp.convertToImg(i, BlackAndWhite)
+				err = sp.ink(im, con)
+				if err != nil {
+					log.Println(err)
+				}
 
 			default:
 				log.Printf("unknown: %c = 0x%02x\n", buf[0], buf[0])

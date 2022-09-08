@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/makeworld-the-better-one/dither/v2"
 	"github.com/mzyy94/nscon"
 	"image"
@@ -74,12 +75,12 @@ func (d *drawingBoard) cursorInit(con *nscon.Controller) {
 
 func (d *drawingBoard) ink(im img, con *nscon.Controller) error {
 	if !d.checkImgSize(im) {
-		log.Println("Image size is not correct")
-		//return errors.New("image size is not correct")
+		return errors.New("image size is not correct")
 	}
 
 	x, y := &d.currentPosition[0], &d.currentPosition[1]
 	height, width := d.height, d.width
+	log.Println("Start drawing", "height:", height, "width:", width)
 
 	log.Println("Init cursor")
 	d.cursorInit(con)
@@ -149,7 +150,9 @@ func (d *drawingBoard) getNearestColorIndex(c color.Color) int {
 
 func (d *drawingBoard) getColorIndex(c color.Color) int {
 	for i, color1 := range d.colorList {
-		if c == color1 {
+		cRGBA := color.RGBAModel.Convert(c)
+		color1RGBA := color.RGBAModel.Convert(color1)
+		if cRGBA == color1RGBA {
 			return i
 		}
 	}
@@ -160,14 +163,7 @@ func (d *drawingBoard) convertToImg(i image.Image, it ImageType) img {
 	bounds := i.Bounds()
 	width, height := bounds.Max.X, bounds.Max.Y
 
-	colors := make([]color.Color, 0)
-
-	switch it {
-	case BlackAndWhite:
-		colors = append(colors, color.White, color.Black)
-	case Colored:
-		colors = append(colors, d.colorList...)
-	}
+	colors := d.colorList
 
 	di := dither.NewDitherer(colors)
 	di.Matrix = dither.FloydSteinberg
