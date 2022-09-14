@@ -1,6 +1,9 @@
 package main
 
-import "image/color"
+import (
+	"github.com/mzyy94/nscon"
+	"image/color"
+)
 
 type marioMaker struct {
 	drawingBoard
@@ -38,4 +41,8 @@ func (m *marioMaker) init() marioMaker {
 	}
 
 	return *m
+}
+
+func (m *marioMaker) ink(im img, con *nscon.Controller) error {
+	return m.commonInk(im, con)
 }

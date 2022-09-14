@@ -73,7 +73,7 @@ func (d *drawingBoard) cursorInit(con *nscon.Controller) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-func (d *drawingBoard) ink(im img, con *nscon.Controller) error {
+func (d *drawingBoard) commonInk(im img, con *nscon.Controller) error {
 	if !d.checkImgSize(im) {
 		return errors.New("image size is not correct")
 	}
